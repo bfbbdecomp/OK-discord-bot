@@ -1,19 +1,19 @@
-name: CI
-on:
-  push:
-    branches: [ main ]
+# name: CI
+# on:
+#   push:
+#     branches: [ main ]
 
-jobs:
-  release:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 16
-      - run: npm install
-      - run: npm run publish
-        env:
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+# jobs:
+#   release:
+#     if: github.ref == 'refs/heads/main'
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v2
+#       - uses: actions/setup-node@v2
+#         with:
+#           node-version: 16
+#       - run: npm install
+#       - run: npm run publish
+#         env:
+#           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+#           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
