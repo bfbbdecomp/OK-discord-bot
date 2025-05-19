@@ -21,8 +21,9 @@ A Discord bot to help decompilation servers manage work and empower contributors
    Or use the provided VS Code task "Run Discord Bot".
 
 ## Usage
-- Use `/claim <filename>` to claim a filename.
-- The bot will DM you when your claim expires.
+- /claim
+- /unclaim
+- /setokchannel (Admin only)
 
 ## Requirements
 - Node.js
