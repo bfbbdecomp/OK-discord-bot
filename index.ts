@@ -115,6 +115,9 @@ const commands = [
                 .setDescription('The channel to use for claim notifications')
                 .setRequired(true)
                 .addChannelTypes(0)), // 0 = GUILD_TEXT
+    new SlashCommandBuilder()
+        .setName('listclaims')
+        .setDescription('List all currently claimed files and their owners'),
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
@@ -186,7 +189,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             if (config.okChannelId) {
                 const okChannel = await client.channels.fetch(config.okChannelId);
                 if (okChannel && okChannel.isTextBased && okChannel.isTextBased() && 'send' in okChannel) {
-                    await (okChannel as any).send(`${interaction.user.id} has just claimed ${filename} for the day.`);
+                    await (okChannel as any).send(`<@${interaction.user.id}> has just claimed ${filename} for the day.`);
                 }
             }
         }
@@ -205,6 +208,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
         claims.splice(claimIndex, 1);
         saveClaims(claims);
         await interaction.reply({ content: `You have unclaimed \`${filename}\`.`, flags: MessageFlags.Ephemeral });
+
+        // Post in configured #ok channel
+        if (interaction.guildId) {
+            const config = loadServerConfig(interaction.guildId);
+            if (config.okChannelId) {
+                const okChannel = await client.channels.fetch(config.okChannelId);
+                if (okChannel && okChannel.isTextBased && okChannel.isTextBased() && 'send' in okChannel) {
+                    await (okChannel as any).send(`<@${interaction.user.id}> has released their claim to ${filename}.`);
+                }
+            }
+        }
     } else if (interaction.commandName === 'setokchannel') {
         if (!interaction.memberPermissions?.has('Administrator')) {
             await interaction.reply({ content: 'Only server admins can set the ok channel.', flags: MessageFlags.Ephemeral });
@@ -223,6 +237,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
         config.okChannelId = channel.id;
         saveServerConfig(interaction.guildId, config);
         await interaction.reply({ content: `OK channel set to <#${channel.id}>.`, flags: MessageFlags.Ephemeral });
+    } else if (interaction.commandName === 'listclaims') {
+        const claims = loadClaims();
+        const activeClaims = claims.filter(c => !dayjs().isAfter(dayjs(c.expiresAt)));
+        
+        if (activeClaims.length === 0) {
+            await interaction.reply({ content: 'No files are currently claimed.', flags: MessageFlags.Ephemeral });
+            return;
+        }
+
+        const claimsList = await Promise.all(activeClaims.map(async claim => {
+            const timeLeft = dayjs(claim.expiresAt).diff(dayjs(), 'hour');
+            const timeLeftStr = timeLeft > 24 
+                ? `${Math.floor(timeLeft / 24)}d ${timeLeft % 24}h`
+                : `${timeLeft}h`;
+            return `\`${claim.filename}\` - claimed by <@${claim.userId}> (expires in ${timeLeftStr})`;
+        }));
+
+        await interaction.reply({
+            content: '**Currently Claimed Files:**\n' + claimsList.join('\n'),
+            flags: MessageFlags.Ephemeral
+        });
     }
 });
 
